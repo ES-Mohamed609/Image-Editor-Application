@@ -19,6 +19,9 @@ class ImageEditor:
         Button(root, text="Histogram Equalization", command=self.histogram_equalization).pack(pady=5)
         Button(root, text="CLAHE", command=self.apply_clahe).pack(pady=5)
         Button(root, text="Weighted Addition", command=self.weighted_addition).pack(pady=5)
+        Button(root, text="Laplacian", command=self.laplacian).pack(pady=5)
+        Button(root, text="Sharpen Laplacian", command=self.sharpenLaplacian).pack(pady=5)
+        Button(root, text="Laplacian of Gaussian", command=self.laplacianOfGaussian).pack(pady=5)
 
         self.image_label = Label(root)
         self.image_label.pack()
@@ -99,6 +102,31 @@ class ImageEditor:
         popup.title("Message")
         Label(popup, text=message).pack(pady=10)
         Button(popup, text="OK", command=popup.destroy).pack(pady=5)
+
+    def laplacian(self):
+        if self.image is not None:
+            laplacian = cv2.Laplacian(self.image, -1, (5,5))
+            self.processed_image = laplacian
+            self.display_image(self.processed_image)
+        else:
+            self.show_message("No image loaded.")
+    
+    def laplacianOfGaussian(self):
+        if self.image is not None:
+            gaussian = cv2.GaussianBlur(self.image, (3,3), 0)
+            laplacian = cv2.Laplacian(gaussian, -1, (5,5))
+            self.processed_image = laplacian
+            self.display_image(self.processed_image)
+        else:
+            self.show_message("No image loaded.")
+
+    def sharpenLaplacian(self):
+        if self.image is not None:
+            laplacian = cv2.Laplacian(self.image, -1, (5,5))
+            laplacian = cv2.convertScaleAbs(laplacian)
+            self.processed_image = cv2.addWeighted(self.image, 1, laplacian, -0.5, 0)
+            self.display_image(self.processed_image)
+
 
 # Main Application
 root = tk.Tk()
