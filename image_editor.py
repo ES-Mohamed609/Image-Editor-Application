@@ -22,6 +22,10 @@ class ImageEditor:
         Button(root, text="Laplacian", command=self.laplacian).pack(pady=5)
         Button(root, text="Sharpen Laplacian", command=self.sharpenLaplacian).pack(pady=5)
         Button(root, text="Laplacian of Gaussian", command=self.laplacianOfGaussian).pack(pady=5)
+        Button(root, text="Mean filter ", command=self.Mean_filter).pack(pady=5)
+        Button(root, text="Weighted Averaging filter  ", command=self.Weighted_avr_filter).pack(pady=5)
+        Button(root, text=" Median filter ", command=self.Median_blur).pack(pady=5)
+        Button(root, text=" Gaussian filter ", command=self.Gaussian_filter).pack(pady=5)
 
         self.image_label = Label(root)
         self.image_label.pack()
@@ -43,8 +47,10 @@ class ImageEditor:
             self.show_message("No processed image to save.")
 
     def display_image(self, img):
+        width, height = 300,300
         img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        img_pil = Image.fromarray(img_rgb)
+        resized_image = cv2.resize(img_rgb, (width, height))
+        img_pil = Image.fromarray(resized_image)
         img_tk = ImageTk.PhotoImage(img_pil)
         self.image_label.config(image=img_tk)
         self.image_label.image = img_tk
@@ -103,6 +109,8 @@ class ImageEditor:
         Label(popup, text=message).pack(pady=10)
         Button(popup, text="OK", command=popup.destroy).pack(pady=5)
 
+    ## Sharpen
+
     def laplacian(self):
         if self.image is not None:
             laplacian = cv2.Laplacian(self.image, -1, (5,5))
@@ -126,6 +134,38 @@ class ImageEditor:
             laplacian = cv2.convertScaleAbs(laplacian)
             self.processed_image = cv2.addWeighted(self.image, 1, laplacian, -0.5, 0)
             self.display_image(self.processed_image)
+
+    ## Smoothing
+    def Mean_filter(self):
+        if self.image is not None:
+            kernel_size = (5,5)
+            self.processed_image = cv2.blur(self.image, kernel_size)
+            self.display_image(self.processed_image)
+        else:
+            self.show_message("No image loaded.")
+    def Weighted_avr_filter(self):
+        if self.image is not None:
+            kernel1 = 1 / 16 * (np.array([[1, 2, 1],
+                                          [2, 4, 2],
+                                          [1, 2, 1]]))
+            self.processed_image = cv2.filter2D(self.image, -1, kernel1)
+            self.display_image(self.processed_image)
+        else:
+            self.show_message("No image loaded.")
+    def Median_blur(self):
+        if self.image is not None:
+            #kernel1 = 5
+            self.processed_image = cv2.medianBlur(self.image,  5)
+            self.display_image(self.processed_image)
+        else:
+            self.show_message("No image loaded.")
+    def Gaussian_filter(self):
+        if self.image is not None:
+            kernel1 = (5,5)
+            self.processed_image = cv2.GaussianBlur(self.image, kernel1, 21)
+            self.display_image(self.processed_image)
+        else:
+            self.show_message("No image loaded.")
 
 
 # Main Application
