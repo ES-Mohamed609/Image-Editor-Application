@@ -1,7 +1,10 @@
+import io
 import cv2
 import tkinter as tk
-from tkinter import filedialog, Label, Button, Toplevel
+from tkinter import filedialog, Label, Button, Toplevel, OptionMenu, StringVar
 from PIL import Image, ImageTk
+import matplotlib.pyplot as plt
+import numpy as np
 
 class ImageEditor:
     def __init__(self, root):
@@ -11,25 +14,76 @@ class ImageEditor:
         self.processed_image = None
         self.rotation_angle = 0  # متغير لتتبع الزاوية الحالية للدوران
 
+        self.filter_var = StringVar(root)
+        self.filter_var.set("Select Filter")
+        filters = ["Grayscale",
+                    "CLAHE",
+                      "Histogram Equalization",
+                        "BGR to RGB",
+                            "Gaussian Blur",
+                              "Median Filter",
+                                "Laplacian",
+                                "Convolution",
+                                  "Correlation",
+                                    "Mean Filter",
+                                      "Laplacian of Gaussian",
+                                        "Custom Kernel",
+                                        "Invert",
+                                        "Thresholding",
+                                        ]
+        OptionMenu(root, self.filter_var, *filters, command=self.apply_filter).pack(pady=5)
+
         # Buttons
         Button(root, text="Load Image", command=self.load_image).pack(pady=5)
         Button(root, text="Save Image", command=self.save_image).pack(pady=5)
         Button(root, text="Rotate Image", command=self.rotate_image).pack(pady=5)
         Button(root, text="Resize Image", command=self.resize_image).pack(pady=5)
-        Button(root, text="Histogram Equalization", command=self.histogram_equalization).pack(pady=5)
-        Button(root, text="CLAHE", command=self.apply_clahe).pack(pady=5)
-        Button(root, text="Weighted Addition", command=self.weighted_addition).pack(pady=5)
-        Button(root, text="Laplacian", command=self.laplacian).pack(pady=5)
-        Button(root, text="Sharpen Laplacian", command=self.sharpenLaplacian).pack(pady=5)
-        Button(root, text="Laplacian of Gaussian", command=self.laplacianOfGaussian).pack(pady=5)
-        Button(root, text="Mean filter ", command=self.Mean_filter).pack(pady=5)
-        Button(root, text="Weighted Averaging filter  ", command=self.Weighted_avr_filter).pack(pady=5)
-        Button(root, text=" Median filter ", command=self.Median_blur).pack(pady=5)
-        Button(root, text=" Gaussian filter ", command=self.Gaussian_filter).pack(pady=5)
+        Button(root, text="Subtract Images", command=self.subtract_image).pack(pady=5)
+        Button(root, text="Add Images", command=self.weighted_addition).pack(pady=5)
+        Button(root, text="Show Color Channels", command=self.show_color_channels).pack(pady=5)
 
         self.image_label = Label(root)
         self.image_label.pack()
 
+    def apply_filter(self, selection):
+        if self.image is not None:
+            match selection:
+                case "Invert":
+                    self.invert_image()
+                case "Thresholding":
+                    self.apply_thresholding()
+                case "Grayscale":
+                    self.processed_image = cv2.cvtColor(self.image, cv2.COLOR_BGR2GRAY)
+                    self.display_image(cv2.cvtColor(self.processed_image, cv2.COLOR_GRAY2BGR))
+                case "BGR to RGB":
+                    self.processed_image = cv2.cvtColor(self.image, cv2.COLOR_BGR2RGB)
+                    self.display_image(self.processed_image)
+                case "Gaussian Blur":
+                    self.Gaussian_filter()
+                case "Median Filter":
+                    self.Median_blur()
+                case "Laplacian":
+                    self.laplacian()
+                case "Convolution":
+                    kernel = np.ones((5, 5), np.float32) / 25
+                    self.processed_image = cv2.filter2D(self.image, -1, kernel)
+                    self.display_image(self.processed_image)
+                case "Correlation":
+                    kernel = np.ones((5, 5), np.float32) / 25
+                    self.processed_image = cv2.filter2D(self.image, -1, kernel)  # Similar to convolution
+                    self.display_image(self.processed_image)
+                case "Mean Filter":
+                    self.Mean_filter()
+                case "Laplacian of Gaussian":
+                    self.laplacianOfGaussian()
+                case "Histogram Equalization":
+                    self.histogram_equalization()
+                case "Custom Kernel":
+                    kernel = np.array([[-1, -1, -1], [-1, 8, -1], [-1, -1, -1]])
+                    self.processed_image = cv2.filter2D(self.image, -1, kernel)
+                    self.display_image(self.processed_image)
+                case _:
+                    print(f"Unknown filter: {selection}")
     def load_image(self):
         filepath = filedialog.askopenfilename(filetypes=[("Image Files", "*.png;*.jpg;*.jpeg;*.bmp")])
         if filepath:
@@ -74,13 +128,85 @@ class ImageEditor:
         else:
             self.show_message("No image loaded.")
 
+    def show_color_channels(self):
+      """Show individual color channels."""
+      if self.image is not None:
+        b, g, r = cv2.split(self.image)
+        channels = {'Blue': b, 'Green': g, 'Red': r}
+
+        for color, channel in channels.items():
+            popup = Toplevel(self.root)
+            popup.title(f"{color} Channel")
+            channel_image = cv2.cvtColor(channel, cv2.COLOR_GRAY2BGR)
+            self.display_image_in_popup(channel_image, popup)
+      else:
+        self.show_message("No image loaded.")
+
+    def apply_thresholding(self):
+      """Apply Thresholding to the image."""
+      if self.image is not None:
+        gray = cv2.cvtColor(self.image, cv2.COLOR_BGR2GRAY)
+        threshold_value = 127  # قيمة العتبة
+        _, self.processed_image = cv2.threshold(gray, threshold_value, 255, cv2.THRESH_BINARY)
+
+        self.display_image(cv2.cvtColor(self.processed_image, cv2.COLOR_GRAY2BGR))
+      else:
+        self.show_message("No image loaded.")
+
+    def show_color_channels(self):
+      """Show individual color channels."""
+      if self.image is not None:
+        b, g, r = cv2.split(self.image)
+        channels = {'Blue': b, 'Green': g, 'Red': r}
+
+        for color, channel in channels.items():
+            popup = Toplevel(self.root)
+            popup.title(f"{color} Channel")
+            channel_image = cv2.cvtColor(channel, cv2.COLOR_GRAY2BGR)
+            self.display_image_in_popup(channel_image, popup)
+      else:
+        self.show_message("No image loaded.")
+
+    def invert_image(self):
+      """Invert image colors."""
+      if self.image is not None:
+        self.processed_image = cv2.bitwise_not(self.image)
+        self.display_image(self.processed_image)
+      else:
+        self.show_message("No image loaded.")
+
     def histogram_equalization(self):
-        if self.image is not None:
-            gray = cv2.cvtColor(self.image, cv2.COLOR_BGR2GRAY)
-            self.processed_image = cv2.equalizeHist(gray)
-            self.display_image(cv2.cvtColor(self.processed_image, cv2.COLOR_GRAY2BGR))
-        else:
-            self.show_message("No image loaded.")
+      if self.image is not None:
+        gray = cv2.cvtColor(self.image, cv2.COLOR_BGR2GRAY)
+        equalized_image = cv2.equalizeHist(gray)
+        plt.figure(figsize=(12, 8))
+        
+        # Oiginal image
+        plt.subplot(2, 2, 1)
+        plt.imshow(gray, cmap='gray')
+        plt.title("Original Image")
+        plt.axis("off")
+        
+        # Histogram Of Original Image
+        plt.subplot(2, 2, 2)
+        #plt.plot(original_hist, color='blue')
+        plt.hist(equalized_image.ravel(), 256, [0,256])
+        plt.title("Histogram of Original Image")
+        
+        # CLAHE Equalized
+        plt.subplot(2, 2, 3)
+        plt.imshow(equalized_image, cmap='gray')
+        plt.title("Image after Histogram Equalization")
+        plt.axis("off")
+        
+        # Histogram Of CLAHE Equalized Image
+        plt.subplot(2, 2, 4)
+        plt.hist(equalized_image.ravel(), 256, [0, 256])
+        plt.title("Histogram after Equalization")
+        plt.tight_layout()
+        plt.show()
+      else:
+        self.show_message("No image loaded.")
 
     def apply_clahe(self):
         if self.image is not None:
@@ -167,6 +293,23 @@ class ImageEditor:
         else:
             self.show_message("No image loaded.")
 
+    def subtract_image(self):
+        filepath = filedialog.askopenfilename(filetypes=[("Image Files", "*.png;*.jpg;*.jpeg;*.bmp")])
+        if filepath:
+            img2 = cv2.imread(filepath)
+            height, width = self.image.shape[:2]
+            img2 = cv2.resize(img2, (width, height))
+            self.processed_image = cv2.subtract(self.image, img2)
+            self.display_image(self.processed_image)
+
+    def display_image_in_popup(self, img, popup):
+      """Display image in a popup window."""
+      img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+      resized_image = cv2.resize(img_rgb, (300, 300))
+      img_pil = Image.fromarray(resized_image)
+      img_tk = ImageTk.PhotoImage(img_pil)
+      Label(popup, image=img_tk).pack()
+      popup.image = img_tk
 
 # Main Application
 root = tk.Tk()
